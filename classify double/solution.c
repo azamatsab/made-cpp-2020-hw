@@ -40,7 +40,7 @@ bool getBit(const uint64_t number, const uint8_t index) {
     uint64_t mask = one << index;
     uint64_t temp = number & mask;
     temp >>= index;
-    return temp;
+    return temp == 1;
 }
 
 /**
@@ -166,8 +166,4 @@ void classify(double number) {
     } else {
         printf("Error.\n");
     }
-}
-
-int main() {
-    return 1;
 }
