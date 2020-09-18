@@ -14,7 +14,7 @@ struct doubleBounds {
   uint8_t fracStart;
   uint8_t fracEnd;
   uint8_t expStart;
-  uint8_t exptEnd;
+  uint8_t expEnd;
   uint8_t signInd;
 };
 
@@ -36,8 +36,7 @@ uint64_t convertToUint64(double number) {
 }
 
 bool getBit(const uint64_t number, const uint8_t index) {
-    uint64_t one = 1;
-    uint64_t mask = one << index;
+    uint64_t mask = 1ull << index;
     uint64_t temp = number & mask;
     temp >>= index;
     return temp == 1;
@@ -51,39 +50,52 @@ bool checkForZeroSign(uint64_t number) {
     return getBit(number, bounds.signInd) == 0;
 }
 
-bool checkRangeForValue(uint64_t number, uint8_t start, uint8_t end, uint8_t value) {
-    for (int i = start; i < end + 1; i++) {
-        if (getBit(number, i) != value) {
-            return false;
-        }
-    }
-    return true;
+uint64_t getRangeValue(uint64_t number, uint8_t start, uint8_t end) {
+    uint8_t leftSteps = bounds.signInd - end;
+    uint8_t rightSteps = leftSteps + start;
+    return (number << leftSteps) >> rightSteps;
+}
+
+bool checkRangeForAllZeroValues(uint64_t number, uint8_t start, uint8_t end) {
+    uint64_t value = getRangeValue(number, start, end);
+    return value == 0;
+}
+
+bool checkRangeForAllOneValues(uint64_t number, uint8_t start, uint8_t end) {
+    uint64_t allOneValue = (1ull << (end - start + 1)) - 1;
+    uint64_t value = getRangeValue(number, start, end);
+    return value == allOneValue;
+}
+
+bool checkRangeForIntermediateValues(uint64_t number, uint8_t start, uint8_t end) {
+    uint8_t lowerValue = 0;
+    uint64_t upperValue = (1ull << (end - start + 1)) - 1;
+    uint64_t value = getRangeValue(number, start, end);
+    return (lowerValue < value) & (value < upperValue);
 }
 
 bool checkForZeroExponent(uint64_t number) {
-    return checkRangeForValue(number, bounds.expStart, bounds.exptEnd, 0);
+    return checkRangeForAllZeroValues(number, bounds.expStart, bounds.expEnd);
 }
 
 bool checkForAllOneExponent(uint64_t number) {
-    return checkRangeForValue(number, bounds.expStart, bounds.exptEnd, 1);
+    return checkRangeForAllOneValues(number, bounds.expStart, bounds.expEnd);
 }
 
 bool checkForZeroFraction(uint64_t number) {
-    return checkRangeForValue(number, bounds.fracStart, bounds.fracEnd, 0);
+    return checkRangeForAllZeroValues(number, bounds.fracStart, bounds.fracEnd);
 }
 
 bool checkForAllOneFraction(uint64_t number) {
-    return checkRangeForValue(number, bounds.fracStart, bounds.fracEnd, 1);
+    return checkRangeForAllOneValues(number, bounds.fracStart, bounds.fracEnd);
 }
 
 bool checkExpForIntermediateValues(uint64_t number) {
-    return !(checkRangeForValue(number, bounds.expStart, bounds.exptEnd, 1) |
-        checkRangeForValue(number, bounds.expStart, bounds.exptEnd, 0));
+    return checkRangeForIntermediateValues(number, bounds.expStart, bounds.expEnd);
 }
 
 bool checkFracForIntermediateValues(uint64_t number) {
-    return !(checkRangeForValue(number, bounds.fracStart, bounds.fracEnd, 1) |
-        checkRangeForValue(number, bounds.fracStart, bounds.fracEnd, 0));
+    return checkRangeForIntermediateValues(number, bounds.fracStart, bounds.fracEnd);
 }
 
 /**
@@ -134,7 +146,7 @@ bool checkForMinusDenormal(uint64_t number) {
 
 bool checkForSignalingNan(uint64_t number) {
     return checkForAllOneExponent(number) & (!getBit(number, bounds.fracEnd)) &
-        (!checkRangeForValue(number, bounds.fracStart, bounds.fracEnd - 1, 0));
+        (!checkRangeForAllZeroValues(number, bounds.fracStart, bounds.fracEnd - 1));
 }
 
 bool checkForQuietNan(uint64_t number) {
