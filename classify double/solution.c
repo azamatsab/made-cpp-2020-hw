@@ -68,10 +68,10 @@ bool checkRangeForAllOneValues(uint64_t number, uint8_t start, uint8_t end) {
 }
 
 bool checkRangeForIntermediateValues(uint64_t number, uint8_t start, uint8_t end) {
-    uint8_t lowerValue = 0;
-    uint64_t upperValue = (1ull << (end - start + 1)) - 1;
+    uint8_t allZeroValue = 0;
+    uint64_t allOneValue = (1ull << (end - start + 1)) - 1;
     uint64_t value = getRangeValue(number, start, end);
-    return (lowerValue < value) & (value < upperValue);
+    return (allZeroValue < value) & (value < allOneValue);
 }
 
 bool checkForZeroExponent(uint64_t number) {
@@ -178,4 +178,45 @@ void classify(double number) {
     } else {
         printf("Error.\n");
     }
+}
+
+void classifyInt(double number) {
+    if (checkForPlusZero(number)) {
+        printf("Plus zero\n");
+    } else if (checkForMinusZero(number)) {
+        printf("Minus zero\n");
+    } else if (checkForPlusInf(number)) {
+        printf("Plus inf\n");
+    } else if (checkForMinusInf(number)) {
+        printf("Minus inf\n");
+    } else if (checkForPlusNormal(number)) {
+        printf("Plus normal\n");
+    } else if (checkForMinusNormal(number)) {
+        printf("Minus normal\n");
+    } else if (checkForPlusDenormal(number)) {
+        printf("Plus Denormal\n");
+    } else if (checkForMinusDenormal(number)) {
+        printf("Minus Denormal\n");
+    } else if (checkForSignalingNan(number)) {
+        printf("Signailing NaN\n");
+    } else if (checkForQuietNan(number)) {
+        printf("Quiet NaN\n");
+    } else {
+        printf("Error.\n");
+    }
+}
+
+// 0 00000000000 0000000000000000000000000000000000000000000000000000
+// 0 11111111111 0000000000000000000000000000000000000000000000000000
+int main() {
+    double test;
+    scanf("%lf", & test);
+    classify(test);
+    // uint64_t test = 0b1111111111110000000000000000000000000000000000000000000000000000;
+    // classifyInt(test);
+    // uint8_t ans = checkRangeForIntermediateValues(test, 60, 62);
+    // uint8_t ans = checkRangeForAllOneValues(test, 60, 62);
+    // uint8_t ans = checkRangeForAllZeroValues(test, 60, 62);
+    // printf("%d\n", ans);
+    return 0;
 }
