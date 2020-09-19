@@ -46,10 +46,6 @@ bool getBit(const uint64_t number, const uint8_t index) {
  * Helper functions:
  */
 
-bool checkForZeroSign(uint64_t number) {
-    return getBit(number, bounds.signInd) == 0;
-}
-
 uint64_t getRangeValue(uint64_t number, uint8_t start, uint8_t end) {
     uint8_t leftSteps = bounds.signInd - end;
     uint8_t rightSteps = leftSteps + start;
@@ -59,6 +55,10 @@ uint64_t getRangeValue(uint64_t number, uint8_t start, uint8_t end) {
 bool checkRangeForAllZeroValues(uint64_t number, uint8_t start, uint8_t end) {
     uint64_t value = getRangeValue(number, start, end);
     return value == 0;
+}
+
+bool checkForZeroSign(uint64_t number) {
+    return getBit(number, bounds.signInd) == 0;
 }
 
 bool checkRangeForAllOneValues(uint64_t number, uint8_t start, uint8_t end) {
