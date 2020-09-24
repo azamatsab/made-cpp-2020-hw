@@ -1,5 +1,11 @@
 .text
 
+/*  Calculates determinant of 3 x 3 matrix like:
+    a b c
+    d e f
+    g h i
+*/
+
 .global count_det
 count_det:
     ldr r2, [r0]        @ r2 = a
