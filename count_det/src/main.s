@@ -29,16 +29,13 @@ count_det:
     mla r0, r1, r9, r0      @ r0 = (a * e * i) + (b * f * g) + (c * d * h)
 
     mul r1, r4, r6          @ r1 = c * e
-    mul r1, r1, r8          @ r1 = c * e * g
-    sub r0, r0, r1          @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g)
+    mls r0, r1, r8, r0      @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g)
 
     mul r1, r3, r5          @ r1 = b * d
-    mul r1, r1, r10         @ r1 = b * d * i
-    sub r0, r0, r1          @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g) - (b * d * i)
+    mls r0, r1, r10, r0     @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g) - (b * d * i)
 
     mul r1, r2, r7          @ r1 = a * f
-    mul r1, r1, r9          @ r1 = a * f * h
-    sub r0, r0, r1          @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g) - (b * d * i) - (a * f * h)
+    mls r0, r1, r9, r0      @ r0 = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g) - (b * d * i) - (a * f * h)
 
     pop {r4-r10}
     bx lr
