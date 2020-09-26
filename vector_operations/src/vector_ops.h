@@ -2,26 +2,28 @@
 #include <vector>
 #include <iostream>
 
+using std::vector;
+using std::abs;
+using std::endl;
+using std::cout;
+using std::ostream;
+using std::istream;
 
 namespace task {
-    using std::vector;
-    using std::abs;
-    using std::endl;
-
     vector<double> operator + (const vector<double>& a, const vector<double>& b) {
-        vector<double> c;
+        vector<double> summ;
         for (size_t i = 0; i < a.size(); ++ i) {
-            c.push_back(a[i] + b[i]);
+            summ.push_back(a[i] + b[i]);
         }
-        return c;
+        return summ;
     }
 
     vector<double> operator - (const vector<double>& a, const vector<double>& b) {
-        vector<double> c;
+        vector<double> subs;
         for (size_t i = 0; i < a.size(); ++ i) {
-            c.push_back(a[i] - b[i]);
+            subs.push_back(a[i] - b[i]);
         }
-        return c;
+        return subs;
     }
 
     vector<double> operator + (const vector<double>& a) {
@@ -29,11 +31,11 @@ namespace task {
     }
 
     vector<double> operator - (const vector<double>& a) {
-        vector<double> c;
+        vector<double> inverse;
         for (size_t i = 0; i < a.size(); ++ i) {
-            c.push_back(-a[i]);
+            inverse.push_back(-a[i]);
         }
-        return c;
+        return inverse;
     }
 
     double operator * (const vector<double>& a, const vector<double>& b) {
@@ -45,43 +47,43 @@ namespace task {
     }
 
     vector<double> operator % (const vector<double>& a, const vector<double>& b) {
-        vector<double> c;
-        c.push_back(a[1] * b[2] - a[2] * b[1]);
-        c.push_back(a[2] * b[0] - a[0] * b[2]);
-        c.push_back(a[0] * b[1] - a[1] * b[0]);
-        return c;
+        vector<double> vector_prod;
+        vector_prod.push_back(a[1] * b[2] - a[2] * b[1]);
+        vector_prod.push_back(a[2] * b[0] - a[0] * b[2]);
+        vector_prod.push_back(a[0] * b[1] - a[1] * b[0]);
+        return vector_prod;
     }
 
     bool operator || (const vector<double>& a, const vector<double>& b) {
-        vector<double> n;
+        double prev_ratio = 0;
+        double ratio = 0;
         double eps = 1e-12;
         for (size_t i = 0; i < a.size(); ++ i) {
-            if (a[i] != 0 && b[i] != 0) {
-                n.push_back(abs(a[i] / b[i]));
-            }
-        }
-        for (size_t i = 0; i < n.size() - 1; ++ i) {
-            if ((n[i] - n[i + 1] > eps) || (n[i + 1] - n[i] > eps)) {
-                return false;
+            if (b[i] != 0) {
+                ratio = a[i] / b[i];
+                if (prev_ratio != 0 && abs(prev_ratio - ratio) > eps) {
+                    return false;
+                }
+                prev_ratio = ratio;
             }
         }
         return true;
     }
 
     bool operator && (const vector<double>& a, const vector<double>& b) {
-        vector<double> n;
+        double prev_ratio = 0;
+        double ratio = 0;
         double eps = 1e-12;
         for (size_t i = 0; i < a.size(); ++ i) {
-            if (a[i] != 0 && b[i] != 0) {
-                n.push_back(a[i] / b[i]);
-            }
-        }
-        for (size_t i = 0; i < n.size() - 1; ++ i) {
-            if (( n[i] - n[i + 1] > eps ) || ( n[i + 1] - n[i] > eps ) ) {
-                return false;
-            }
-            if ((n[i] < 0) || (n[i + 1] < 0)) {
-                return false;
+            if (b[i] != 0) {
+                ratio = a[i] / b[i];
+                if (ratio < 0) {
+                    return false;
+                }
+                if (prev_ratio != 0 && abs(prev_ratio - ratio) > eps) {
+                    return false;
+                }
+                prev_ratio = ratio;
             }
         }
         return true;
@@ -103,7 +105,7 @@ namespace task {
         return c;
     }
 
-    std::ostream& operator << (std::ostream &out, const vector<double>& a) {
+    ostream& operator << (ostream &out, const vector<double>& a) {
         for (size_t i = 0; i < a.size(); ++ i) {
             out << a[i] << " ";
         }
@@ -111,10 +113,10 @@ namespace task {
         return out;
     }
 
-    std::istream& operator >> (std::istream &in, vector<double>& a) {
-        a.clear();
+    istream& operator >> (istream &in, vector<double>& a) {
         size_t n; 
         in >> n; 
+        a.clear();
         for (size_t i = 0; i < n; ++ i) {
             double number;
             in >> number;
