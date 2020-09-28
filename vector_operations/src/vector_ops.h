@@ -60,16 +60,12 @@ namespace task {
 
   bool operator || (const vector <double> & a,
     const vector <double> & b) {
-    double prev_ratio = 0;
-    double ratio = 0;
     double eps = 1e-12;
-    for (size_t i = 0; i < a.size(); ++i) {
-      if (b[i] != 0) {
-        ratio = a[i] / b[i];
-        if (prev_ratio != 0 && abs(prev_ratio - ratio) > eps) {
-          return false;
-        }
-        prev_ratio = ratio;
+    for (size_t i = 0; i < a.size() - 1; ++i) {
+      double mul1 = a[i] * b[i + 1];  
+      double mul2 = a[i + 1] * b[i];  
+      if (abs(mul1 - mul2) > eps) {
+        return false;
       }
     }
     return true;
@@ -77,40 +73,33 @@ namespace task {
 
   bool operator && (const vector <double> & a,
     const vector <double> & b) {
-    double prev_ratio = 0;
-    double ratio = 0;
-    double eps = 1e-12;
-    for (size_t i = 0; i < a.size(); ++i) {
-      if (b[i] != 0) {
-        ratio = a[i] / b[i];
-        if (ratio < 0) {
+    if (a || b) {
+      for (size_t i = 0; i < a.size(); ++i) {
+        if (a[i] / b[i] < 0) {
           return false;
         }
-        if (prev_ratio != 0 && abs(prev_ratio - ratio) > eps) {
-          return false;
-        }
-        prev_ratio = ratio;
       }
-    }
-    return true;
+      return true;
+    } 
+    return false;
   }
 
   vector <int> operator | (const vector <int> & a,
     const vector <int> & b) {
-    vector <int> c;
+    vector <int> result_vector;
     for (size_t i = 0; i < a.size(); ++i) {
-      c.push_back(a[i] | b[i]);
+      result_vector.push_back(a[i] | b[i]);
     }
-    return c;
+    return result_vector;
   }
 
   vector <int> operator & (const vector <int> & a,
     const vector <int> & b) {
-    vector <int> c;
+    vector <int> result_vector;
     for (size_t i = 0; i < a.size(); ++i) {
-      c.push_back(a[i] & b[i]);
+      result_vector.push_back(a[i] & b[i]);
     }
-    return c;
+    return result_vector;
   }
 
   ostream & operator << (ostream & out,
@@ -123,7 +112,8 @@ namespace task {
   }
 
   istream & operator >> (istream & in , vector <double> & a) {
-    size_t n; in >> n;
+    size_t n; 
+    in >> n;
     a.clear();
     for (size_t i = 0; i < n; ++i) {
       double number; in >> number;
