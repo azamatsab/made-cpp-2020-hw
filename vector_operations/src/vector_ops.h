@@ -75,7 +75,7 @@ namespace task {
     const vector <double> & b) {
     if (a || b) {
       for (size_t i = 0; i < a.size(); ++i) {
-        if (a[i] / b[i] < 0) {
+        if ((a[i] < 0) && (b[i] >= 0) || (a[i] >= 0) && (b[i] < 0)) {
           return false;
         }
       }
