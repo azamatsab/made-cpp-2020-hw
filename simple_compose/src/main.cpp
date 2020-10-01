@@ -6,7 +6,13 @@ typedef std::function<int (int)> Op;
 
 
 Op compose (size_t n, Op ops[]) {
-    /// Your code goes here.
+    return [ops, n] (int x) -> int {
+        int result = x;
+        for (ssize_t i = n - 1; i >= 0; --i) {
+            result = ops[i](result);
+        }
+        return result;
+    };
 }
 
 
