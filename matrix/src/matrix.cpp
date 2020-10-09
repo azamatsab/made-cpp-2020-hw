@@ -17,9 +17,9 @@ Matrix::Matrix(size_t rows, size_t cols) {
   for (size_t i = 0; i < rows; ++i) {
     data_[i] = new double[cols];
     for (size_t j = 0; j < cols; ++j) {
-      if (i == j)
+      if (i == j) {
         data_[i][j] = 1;
-      else {
+      } else {
         data_[i][j] = 0;
       }
     }
