@@ -69,6 +69,7 @@ void Matrix::checkBounds(size_t row, size_t col) const {
     throw OutOfBoundsException();
   }
 }
+
 double& Matrix::get(size_t row, size_t col) {
   checkBounds(row, col);
   return data_[row][col];
@@ -106,6 +107,7 @@ void Matrix::resize(size_t new_rows, size_t new_cols) {
 }
 
 double* Matrix::operator[](size_t row) { return data_[row]; }
+
 double* Matrix::operator[](size_t row) const { return data_[row]; }
 
 void Matrix::checkSize(const Matrix& a) const {
@@ -339,8 +341,11 @@ bool Matrix::operator!=(const Matrix& a) const {
 }
 
 size_t Matrix::getRowSize() const { return row_size; }
+
 size_t Matrix::getColSize() const { return col_size; }
+
 void Matrix::setRowSize(size_t size) { row_size = size; }
+
 void Matrix::setColSize(size_t size) { col_size = size; }
 
 Matrix task::operator*(const double& a, const Matrix& b) {
@@ -362,6 +367,7 @@ std::ostream& task::operator<<(std::ostream& output, const Matrix& matrix) {
   output << "\n";
   return output;
 }
+
 std::istream& task::operator>>(std::istream& input, Matrix& matrix) {
   size_t row;
   size_t col;
