@@ -28,8 +28,8 @@ vector<double> operator-(const vector<double> &opn1,
   return subs;
 }
 
-vector<double> operator+(const vector<double> &opn1) { 
-  return opn1; 
+vector<double> operator+(const vector<double> &opn1) {
+  return opn1;
   }
 
 vector<double> operator-(const vector<double> &opn1) {
