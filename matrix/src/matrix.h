@@ -12,20 +12,6 @@ class OutOfBoundsException : public std::exception {};
 class SizeMismatchException : public std::exception {};
 
 class Matrix {
- private:
-  double** data_;
-  size_t row_size;
-  size_t col_size;
-  double dotProd(const std::vector<double>& a,
-                 const std::vector<double>& b) const;
-  double determinant(const Matrix& mat, size_t rows) const;
-  void checkBounds(size_t row, size_t col) const;
-  void checkSize(const Matrix& a) const;
-  std::vector<double> getRowVector(size_t row) const;
-  std::vector<double> getColumnVector(size_t column) const;
-  void setRowSize(size_t size);
-  void setColSize(size_t size);
-
  public:
   Matrix();
   Matrix(size_t rows, size_t cols);
@@ -67,6 +53,20 @@ class Matrix {
   ~Matrix();
   size_t getRowSize() const;
   size_t getColSize() const;
+
+ private:
+  double** data_;
+  size_t row_size;
+  size_t col_size;
+  double dotProd(const std::vector<double>& a,
+                 const std::vector<double>& b) const;
+  double determinant(const Matrix& mat, size_t rows) const;
+  void checkBounds(size_t row, size_t col) const;
+  void checkSize(const Matrix& a) const;
+  std::vector<double> getRowVector(size_t row) const;
+  std::vector<double> getColumnVector(size_t column) const;
+  void setRowSize(size_t size);
+  void setColSize(size_t size);
 };
 
 Matrix operator*(const double& a, const Matrix& b);
