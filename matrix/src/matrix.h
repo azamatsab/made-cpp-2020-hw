@@ -54,7 +54,7 @@ class Matrix {
   size_t getRowSize() const;
   size_t getColSize() const;
 
- private:
+ protected:
   double** data_;
   size_t row_size_;
   size_t col_size_;
