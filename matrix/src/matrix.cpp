@@ -34,12 +34,14 @@ Matrix::Matrix(size_t rows, size_t cols) {
   }
 }
 
-Matrix::~Matrix() {
+void Matrix::clearMemory() {
   for (size_t i = 0; i < getRowSize(); ++i) {
     delete data_[i];
   }
   delete data_;
 }
+
+Matrix::~Matrix() { clearMemory(); }
 
 Matrix::Matrix(const Matrix& copy) {
   setRowSize(copy.getRowSize());
@@ -55,11 +57,7 @@ Matrix::Matrix(const Matrix& copy) {
 
 Matrix& Matrix::operator=(const Matrix& a) {
   if (*this == a) return *this;
-  for (size_t i = 0; i < getRowSize(); ++i) {
-    delete data_[i];
-  }
-  delete data_;
-
+  clearMemory();
   setRowSize(a.getRowSize());
   setColSize(a.getColSize());
   data_ = new double*[getRowSize()];
@@ -73,7 +71,7 @@ Matrix& Matrix::operator=(const Matrix& a) {
 }
 
 void Matrix::checkBounds(size_t row, size_t col) const {
-  if (0 > row || row >= getRowSize() || 0 > col || col >= getColSize()) {
+  if (row >= getRowSize() || col >= getColSize()) {
     throw OutOfBoundsException();
   }
 }

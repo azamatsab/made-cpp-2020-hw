@@ -58,6 +58,7 @@ class Matrix {
   double** data_;
   size_t row_size_;
   size_t col_size_;
+  void clearMemory();
   double dotProd(const std::vector<double>& a,
                  const std::vector<double>& b) const;
   double determinant(const Matrix& mat, size_t rows) const;
