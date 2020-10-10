@@ -43,21 +43,7 @@ void Matrix::clearMemory() {
 
 Matrix::~Matrix() { clearMemory(); }
 
-Matrix::Matrix(const Matrix& copy) {
-  setRowSize(copy.getRowSize());
-  setColSize(copy.getColSize());
-  data_ = new double*[getRowSize()];
-  for (size_t i = 0; i < getRowSize(); ++i) {
-    data_[i] = new double[getColSize()];
-    for (size_t j = 0; j < getColSize(); ++j) {
-      data_[i][j] = copy[i][j];
-    }
-  }
-}
-
-Matrix& Matrix::operator=(const Matrix& a) {
-  if (*this == a) return *this;
-  clearMemory();
+void Matrix::copyMatrix(const Matrix& a) {
   setRowSize(a.getRowSize());
   setColSize(a.getColSize());
   data_ = new double*[getRowSize()];
@@ -67,6 +53,16 @@ Matrix& Matrix::operator=(const Matrix& a) {
       data_[i][j] = a[i][j];
     }
   }
+}
+
+Matrix::Matrix(const Matrix& copy) {
+  copyMatrix(copy);
+}
+
+Matrix& Matrix::operator=(const Matrix& a) {
+  if (*this == a) return *this;
+  clearMemory();
+  copyMatrix(a);
   return *this;
 }
 
