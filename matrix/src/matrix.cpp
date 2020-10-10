@@ -2,6 +2,14 @@
 
 using namespace task;
 
+size_t Matrix::getRowSize() const { return row_size_; }
+
+size_t Matrix::getColSize() const { return col_size_; }
+
+void Matrix::setRowSize(size_t size) { row_size_ = size; }
+
+void Matrix::setColSize(size_t size) { col_size_ = size; }
+
 Matrix::Matrix() {
   setRowSize(1);
   setColSize(1);
@@ -137,16 +145,7 @@ Matrix& Matrix::operator-=(const Matrix& a) {
 }
 
 Matrix& Matrix::operator*=(const Matrix& a) {
-  if (a.getRowSize() != getColSize()) {
-    throw SizeMismatchException();
-  }
-  Matrix result = Matrix(getRowSize(), a.getColSize());
-  for (size_t i = 0; i < getRowSize(); ++i) {
-    for (size_t j = 0; j < a.getColSize(); ++j) {
-      result[i][j] = dotProd(getRowVector(i), a.getColumnVector(j));
-    }
-  }
-  *this = result;
+  *this = *this * a;
   return *this;
 }
 
@@ -261,25 +260,17 @@ double Matrix::det() const {
   return determinant(*this, getRowSize());
 }
 
-void Matrix::transpose() {
-  Matrix temp = Matrix(getColSize(), getRowSize());
-  for (size_t i = 0; i < temp.getRowSize(); ++i) {
-    for (size_t j = 0; j < temp.getColSize(); ++j) {
-      temp[i][j] = data_[j][i];
-    }
-  }
-  *this = temp;
-}
-
 Matrix Matrix::transposed() const {
-  Matrix b = Matrix(getColSize(), getRowSize());
+  Matrix transp_mat = Matrix(getColSize(), getRowSize());
   for (size_t i = 0; i < getRowSize(); ++i) {
     for (size_t j = 0; j < getColSize(); ++j) {
-      b[j][i] = data_[i][j];
+      transp_mat[j][i] = data_[i][j];
     }
   }
-  return b;
+  return transp_mat;
 }
+
+void Matrix::transpose() { *this = transposed(); }
 
 double Matrix::trace() const {
   if (getRowSize() != getColSize()) {
@@ -328,35 +319,13 @@ bool Matrix::operator==(const Matrix& a) const {
 }
 
 bool Matrix::operator!=(const Matrix& a) const {
-  if (a.getRowSize() != getRowSize() || a.getColSize() != getColSize())
-    return true;
-  for (size_t i = 0; i < getRowSize(); ++i) {
-    for (size_t j = 0; j < getColSize(); ++j) {
-      if (fabs(data_[i][j] - a[i][j]) > EPS) {
-        return true;
-      }
-    }
+  if (*this == a) {
+    return false;
   }
-  return false;
+  return true;
 }
 
-size_t Matrix::getRowSize() const { return row_size_; }
-
-size_t Matrix::getColSize() const { return col_size_; }
-
-void Matrix::setRowSize(size_t size) { row_size_ = size; }
-
-void Matrix::setColSize(size_t size) { col_size_ = size; }
-
-Matrix task::operator*(const double& a, const Matrix& b) {
-  Matrix c = Matrix(b.getRowSize(), b.getColSize());
-  for (size_t i = 0; i < b.getRowSize(); ++i) {
-    for (size_t j = 0; j < b.getColSize(); ++j) {
-      c[i][j] = b[i][j] * a;
-    }
-  }
-  return c;
-}
+Matrix task::operator*(const double& a, const Matrix& b) { return b * a; }
 
 std::ostream& task::operator<<(std::ostream& output, const Matrix& matrix) {
   for (size_t i = 0; i < matrix.getRowSize(); ++i) {
@@ -384,4 +353,3 @@ std::istream& task::operator>>(std::istream& input, Matrix& matrix) {
   }
   return input;
 }
-    
