@@ -340,13 +340,13 @@ bool Matrix::operator!=(const Matrix& a) const {
   return false;
 }
 
-size_t Matrix::getRowSize() const { return row_size; }
+size_t Matrix::getRowSize() const { return row_size_; }
 
-size_t Matrix::getColSize() const { return col_size; }
+size_t Matrix::getColSize() const { return col_size_; }
 
-void Matrix::setRowSize(size_t size) { row_size = size; }
+void Matrix::setRowSize(size_t size) { row_size_ = size; }
 
-void Matrix::setColSize(size_t size) { col_size = size; }
+void Matrix::setColSize(size_t size) { col_size_ = size; }
 
 Matrix task::operator*(const double& a, const Matrix& b) {
   Matrix c = Matrix(b.getRowSize(), b.getColSize());
@@ -384,3 +384,4 @@ std::istream& task::operator>>(std::istream& input, Matrix& matrix) {
   }
   return input;
 }
+    
