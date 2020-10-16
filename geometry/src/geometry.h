@@ -6,7 +6,6 @@
 
 #include "cmath"
 
-
 const double EPS = pow(10, -12);
 
 struct Point {
