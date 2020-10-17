@@ -426,7 +426,7 @@ class Rectangle : public Polygon {
   Point getA() { return vertices_[0]; }
 
   Point getB() { return vertices_[1]; }
-  
+
   double getMinLength() { return min_length_; }
 
   double getMaxLength() { return max_length_; }
