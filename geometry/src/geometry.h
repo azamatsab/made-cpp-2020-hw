@@ -359,7 +359,7 @@ class Rectangle : public Polygon {
 
   Point center() { return getA().getCenter(getB()); }
 
-  virtual std::pair<Line, Line> diagonals() {
+  std::pair<Line, Line> diagonals() {
     Line d1 = Line(getA(), getB());
     Point center = getA().getCenter(getB());
     double angle = d1.getAngle();
@@ -422,14 +422,6 @@ class Square : public Rectangle {
     Point center = getA().getCenter(getB());
     auto rad = getA().dist(getB()) / sqrt(2);
     return Circle(center, rad);
-  }
-
-  std::pair<Line, Line> diagonals() override {
-    Line d1 = Line(getA(), getB());
-    Point center = getA().getCenter(getB());
-    double angle = -d1.getAngle();
-    Line d2 = Line(center, angle);
-    return std::pair<Line, Line>(d1, d2);
   }
 
   double perimeter() { return 4 * min_length_; }
