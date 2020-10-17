@@ -261,6 +261,7 @@ class Polygon : public Shape {
 class Ellipse : public Shape {
  public:
   Ellipse() {}
+
   Ellipse(Point focus1, Point focus2, double distance)
       : focus1_(focus1), focus2_(focus2), distance_(distance) {
     a_ = distance_ / 2;
@@ -349,9 +350,7 @@ class Circle : public Ellipse {
 class Rectangle : public Polygon {
  public:
   Rectangle() {}
-  Rectangle(Point a, Point b, double r) {
-    vertices_.push_back(a);
-    vertices_.push_back(b);
+  Rectangle(Point a, Point b, double r) : Polygon(std::vector<Point>{a, b}) {
     auto length1 = a.dist(b) / sqrt(pow(r, 2) + 1);
     auto length2 = length1 * r;
     min_length_ = std::min(length1, length2);
@@ -411,11 +410,7 @@ class Rectangle : public Polygon {
 
 class Square : public Rectangle {
  public:
-  Square(Point a, Point b) {
-    vertices_.push_back(a);
-    vertices_.push_back(b);
-    length_ = a.dist(b) / sqrt(2);
-  }
+  Square(Point a, Point b) : Rectangle(a, b, 1) {}
 
   Circle circumscribedCircle() {
     Point center = getA().getCenter(getB());
@@ -437,25 +432,19 @@ class Square : public Rectangle {
     return std::pair<Line, Line>(d1, d2);
   }
 
-  double perimeter() { return 4 * length_; }
+  double perimeter() { return 4 * min_length_; }
 
-  double area() { return pow(length_, 2); }
+  double area() { return pow(min_length_, 2); }
 
   void scale(Point center, double coefficient) {
     Polygon::scale(center, coefficient);
-    length_ = coefficient * length_;
+    min_length_ = coefficient * min_length_;
   }
-
- protected:
-  double length_;
 };
 
 class Triangle : public Polygon {
  public:
-  Triangle(Point a, Point b, Point c) {
-    vertices_.push_back(a);
-    vertices_.push_back(b);
-    vertices_.push_back(c);
+  Triangle(Point a, Point b, Point c) : Polygon(std::vector<Point>{a, b, c}) {
     c_len_ = a.dist(b);
     b_len_ = a.dist(c);
     a_len_ = b.dist(c);
