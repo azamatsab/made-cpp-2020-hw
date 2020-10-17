@@ -101,7 +101,7 @@ class Line {
   Line(double a, double b) : angle_(a), bias_(b) {}
 
   Line(Point a, double angle) {
-    angle_ = angle_;
+    angle_ = angle;
     bias_ = a.getY() - a.getX() * angle_;
   }
 
@@ -110,7 +110,7 @@ class Line {
   double getBias() const { return bias_; }
 
   bool operator==(const Line &a) const {
-    if (a.getAngle() == angle_ && a.getBias() == bias_) {
+    if (a.getAngle() - angle_ <= EPS && a.getBias() - bias_ <= EPS) {
       return true;
     }
     return false;
@@ -230,36 +230,28 @@ class Polygon : public Shape {
   }
 
   void rotate(Point center, double angle) override {
-    std::vector<Point> new_vertices(vertices_.size());
     for (int i = 0; i < vertices_.size(); ++i) {
-      new_vertices[i] = vertices_[i].rotatePoint(center, angle);
+      vertices_[i] = vertices_[i].rotatePoint(center, angle);
     }
-    vertices_ = new_vertices;
   }
 
   void reflex(Point center) override {
-    std::vector<Point> new_vertices(vertices_.size());
     for (int i = 0; i < vertices_.size(); ++i) {
-      new_vertices[i] = vertices_[i].reflexPoint(center);
+      vertices_[i] = vertices_[i].reflexPoint(center);
     }
-    vertices_ = new_vertices;
   }
 
   void reflex(Line axis) override {
     auto slope = -axis.getAngle();
-    std::vector<Point> new_vertices(vertices_.size());
     for (int i = 0; i < vertices_.size(); ++i) {
-      new_vertices[i] = axis.reflexLine(vertices_[i]);
+      vertices_[i] = axis.reflexLine(vertices_[i]);
     }
-    vertices_ = new_vertices;
   }
 
   void scale(Point center, double coefficient) override {
-    std::vector<Point> new_vertices(vertices_.size());
     for (int i = 0; i < vertices_.size(); ++i) {
-      new_vertices[i] = vertices_[i].scalePoint(center, coefficient);
+      vertices_[i] = vertices_[i].scalePoint(center, coefficient);
     }
-    vertices_ = new_vertices;
   }
 
  protected:
@@ -347,6 +339,8 @@ class Circle : public Ellipse {
 
   double radius() { return radius_; }
 
+  Point center() { return a_; }
+
   double perimeter() { return 2 * M_PI * radius_; }
 
   double area() { return M_PI * pow(radius_, 2); }
@@ -374,8 +368,6 @@ class Circle : public Ellipse {
     radius_ = coefficient * radius_;
   }
 
-  Point center() { return a_; }
-
  protected:
   Point a_;
   double radius_;
@@ -385,144 +377,120 @@ class Rectangle : public Polygon {
  public:
   Rectangle() {}
   Rectangle(Point a, Point b, double r) {
-    a_ = a;
-    b_ = b;
-    vertices_.push_back(a_);
-    vertices_.push_back(b_);
-    ratio_ = r;
-    d1_ = Line(a_, b_);
-    d2_ = Line(-d1_.getAngle(), d1_.getBias());
-    auto length1 = a_.dist(b_) / sqrt(pow(ratio_, 2) + 1);
-    auto length2 = length1 * ratio_;
+    vertices_.push_back(a);
+    vertices_.push_back(b);
+    auto length1 = a.dist(b) / sqrt(pow(r, 2) + 1);
+    auto length2 = length1 * r;
     min_length_ = std::min(length1, length2);
     max_length_ = std::max(length1, length2);
   }
 
-  Point center() { return a_.getCenter(b_); }
+  Point center() { return getA().getCenter(getB()); }
 
-  std::pair<Line, Line> diagonals() { return std::pair<Line, Line>(d1_, d2_); }
+  virtual std::pair<Line, Line> diagonals() {
+    Line d1 = Line(getA(), getB());
+    Point center = getA().getCenter(getB());
+    double angle = d1.getAngle();
+    if (max_length_ - min_length_ <= EPS) {
+      angle = -angle;
+    }
+    Line d2 = Line(center, 1 / (angle + EPS));
+    return std::pair<Line, Line>(d1, d2);
+  }
 
   double perimeter() { return 2 * (min_length_ + max_length_); }
 
   double area() { return min_length_ * max_length_; }
 
-  void rotate(Point center, double angle) {
-    a_ = a_.rotatePoint(center, angle);
-    b_ = b_.rotatePoint(center, angle);
-    d1_ = Line(a_, b_);
-    d2_ = Line(-d1_.getAngle(), d1_.getBias());
-  }
-
-  void reflex(Point center) {
-    a_ = a_.reflexPoint(center);
-    b_ = b_.reflexPoint(center);
-    d1_ = Line(a_, b_);
-    d2_ = Line(-d1_.getAngle(), d1_.getBias());
-  }
-
-  void reflex(Line axis) {
-    a_ = axis.reflexLine(a_);
-    b_ = axis.reflexLine(b_);
-    d1_ = Line(a_, b_);
-    d2_ = Line(-d1_.getAngle(), d1_.getBias());
+  bool operator==(const Shape &another) override {
+    if (Polygon::operator==(another)) {
+      Rectangle *inp_shape =
+          dynamic_cast<Rectangle *>(const_cast<Shape *>(&another));
+      auto d1 = std::get<0>(diagonals());
+      auto d2 = std::get<1>(diagonals());
+      auto id1 = std::get<0>(inp_shape->diagonals());
+      auto id2 = std::get<1>(inp_shape->diagonals());
+      if ((d1 == id1 || d1 == id2) && (d2 == id1 || d2 == id2)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void scale(Point center, double coefficient) {
-    a_ = a_.scalePoint(center, coefficient);
-    b_ = b_.scalePoint(center, coefficient);
-    d1_ = Line(a_, b_);
-    d2_ = Line(-d1_.getAngle(), d1_.getBias());
+    Polygon::scale(center, coefficient);
     min_length_ = coefficient * min_length_;
     max_length_ = coefficient * max_length_;
   }
 
-  Point getVertice1() { return a_; }
-  Point getVertice2() { return b_; }
-  double getRatio() { return ratio_; }
+  Point getA() { return vertices_[0]; }
+
+  Point getB() { return vertices_[1]; }
+  
+  double getMinLength() { return min_length_; }
+
+  double getMaxLength() { return max_length_; }
 
  protected:
-  Point a_;
-  Point b_;
-  double ratio_;
   double min_length_;
   double max_length_;
-  Line d1_;
-  Line d2_;
 };
 
 class Square : public Rectangle {
  public:
-  Square(Point a, Point b) : a_(a), b_(b) {
-    length_ = a_.dist(b_) / sqrt(2);
-    vertices_.push_back(a_);
-    vertices_.push_back(b_);
+  Square(Point a, Point b) {
+    vertices_.push_back(a);
+    vertices_.push_back(b);
+    length_ = a.dist(b) / sqrt(2);
   }
 
   Circle circumscribedCircle() {
-    Point center = a_.getCenter(b_);
-    auto rad = a_.dist(b_);
+    Point center = getA().getCenter(getB());
+    auto rad = getA().dist(getB());
     return Circle(center, rad);
   }
 
   Circle inscribedCircle() {
-    Point center = a_.getCenter(b_);
-    auto rad = a_.dist(b_) / sqrt(2);
+    Point center = getA().getCenter(getB());
+    auto rad = getA().dist(getB()) / sqrt(2);
     return Circle(center, rad);
+  }
+
+  std::pair<Line, Line> diagonals() override {
+    Line d1 = Line(getA(), getB());
+    Point center = getA().getCenter(getB());
+    double angle = -d1.getAngle();
+    Line d2 = Line(center, angle);
+    return std::pair<Line, Line>(d1, d2);
   }
 
   double perimeter() { return 4 * length_; }
 
   double area() { return pow(length_, 2); }
 
-  bool operator==(const Shape &another) override {
-    Square *inp_shape = dynamic_cast<Square *>(const_cast<Shape *>(&another));
-    if (inp_shape) {
-      if (inp_shape->getVertice1() != a_ || inp_shape->getVertice2() != b_) {
-        return false;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  void rotate(Point center, double angle) {
-    a_ = a_.rotatePoint(center, angle);
-    b_ = b_.rotatePoint(center, angle);
-  }
-
-  void reflex(Point center) {
-    a_ = a_.reflexPoint(center);
-    b_ = b_.reflexPoint(center);
-  }
-
-  void reflex(Line axis) {
-    a_ = axis.reflexLine(a_);
-    b_ = axis.reflexLine(b_);
-  }
-
   void scale(Point center, double coefficient) {
-    a_ = a_.scalePoint(center, coefficient);
-    b_ = b_.scalePoint(center, coefficient);
+    Polygon::scale(center, coefficient);
     length_ = coefficient * length_;
   }
-  Point getVertice1() { return a_; }
-  Point getVertice2() { return b_; }
-  double getRatio() { return ratio_; }
 
  protected:
-  Point a_;
-  Point b_;
   double length_;
-  double ratio_ = 1;
 };
 
 class Triangle : public Polygon {
  public:
-  Triangle(Point a, Point b, Point c) : a_(a), b_(b), c_(c) {
-    c_len_ = a_.dist(b_);
-    b_len_ = a_.dist(c_);
-    a_len_ = b_.dist(c_);
+  Triangle(Point a, Point b, Point c) {
+    vertices_.push_back(a);
+    vertices_.push_back(b);
+    vertices_.push_back(c);
+    c_len_ = a.dist(b);
+    b_len_ = a.dist(c);
+    a_len_ = b.dist(c);
   }
+
+  Point getA() { return vertices_[0]; }
+  Point getB() { return vertices_[1]; }
+  Point getC() { return vertices_[2]; }
 
   double circumCenterHelper(double a, double b, double c) {
     auto a_part1 = pow(a, 2) * (pow(b, 2) + pow(c, 2) - pow(a, 2));
@@ -534,45 +502,50 @@ class Triangle : public Polygon {
     auto abc = circumCenterHelper(a_len_, b_len_, c_len_);
     auto bac = circumCenterHelper(b_len_, a_len_, c_len_);
     auto cab = circumCenterHelper(c_len_, a_len_, b_len_);
-    auto x = a_.getX() * abc + b_.getX() * bac + c_.getX() * cab;
-    auto y = a_.getY() * abc + b_.getY() * bac + c_.getY() * cab;
+    auto x = getA().getX() * abc + getB().getX() * bac + getC().getX() * cab;
+    auto y = getA().getY() * abc + getB().getY() * bac + getC().getY() * cab;
     return Point(x, y);
   }
 
   Circle circumscribedCircle() {
     Point center = getCircumcenter();
-    double radius = center.dist(c_);
+    double radius = center.dist(getC());
     return Circle(center, radius);
   }
 
   Point getIncenter() {
     auto p = perimeter();
-    auto x = (a_len_ * a_.getX() + b_len_ * b_.getX() + c_len_ * c_.getX()) / p;
-    auto y = (a_len_ * a_.getY() + b_len_ * b_.getY() + c_len_ * c_.getY()) / p;
+    auto x = (a_len_ * getA().getX() + b_len_ * getB().getX() +
+              c_len_ * getC().getX()) /
+             p;
+    auto y = (a_len_ * getA().getY() + b_len_ * getB().getY() +
+              c_len_ * getC().getY()) /
+             p;
     return Point(x, y);
   }
 
   Circle inscribedCircle() {
     Point center = getIncenter();
-    Point touch = Line(a_, c_).getProjection(center);
+    Point touch = Line(getA(), getC()).getProjection(center);
     double radius = center.dist(touch);
     return Circle(center, radius);
   }
 
   Point centroid() {
-    auto x = (a_.getX() + b_.getX() + c_.getX()) / 3;
-    auto y = (a_.getY() + b_.getY() + c_.getY()) / 3;
+    auto x = (getA().getX() + getB().getX() + getC().getX()) / 3;
+    auto y = (getA().getY() + getB().getY() + getC().getY()) / 3;
     return Point(x, y);
   }
 
   double getPerp(Point a, Point b) { return -1 / b.xDist(a); }
 
   Point orthocenter() {
-    double cf = getPerp(a_, b_);
-    double ad = getPerp(b_, c_);
-    auto x =
-        (a_.getY() - c_.getY() + cf * c_.getX() - ad * a_.getX()) / (cf - ad);
-    auto y = cf * (x - c_.getX()) + c_.getY();
+    double cf = getPerp(getA(), getB());
+    double ad = getPerp(getB(), getC());
+    auto x = (getA().getY() - getC().getY() + cf * getC().getX() -
+              ad * getA().getX()) /
+             (cf - ad);
+    auto y = cf * (x - getC().getX()) + getC().getY();
     return Point(x, y);
   }
 
@@ -599,45 +572,15 @@ class Triangle : public Polygon {
     Triangle *inp_shape =
         dynamic_cast<Triangle *>(const_cast<Shape *>(&another));
     if (inp_shape) {
-      if (inp_shape->getA() == a_ && inp_shape->getB() == b_ &&
-          inp_shape->getC() == c_) {
+      if (inp_shape->getA() == getA() && inp_shape->getB() == getB() &&
+          inp_shape->getC() == getC()) {
         return true;
       }
     }
     return false;
   }
 
-  void rotate(Point center, double angle) {
-    a_ = a_.rotatePoint(center, angle);
-    b_ = b_.rotatePoint(center, angle);
-    c_ = c_.rotatePoint(center, angle);
-  }
-
-  void reflex(Point center) {
-    a_ = a_.reflexPoint(center);
-    b_ = b_.reflexPoint(center);
-    c_ = c_.reflexPoint(center);
-  }
-
-  void reflex(Line axis) {
-    a_ = axis.reflexLine(a_);
-    b_ = axis.reflexLine(b_);
-    c_ = axis.reflexLine(c_);
-  }
-
-  void scale(Point center, double coefficient) {
-    a_ = a_.scalePoint(center, coefficient);
-    b_ = b_.scalePoint(center, coefficient);
-    c_ = c_.scalePoint(center, coefficient);
-  }
-  Point getA() { return a_; }
-  Point getB() { return b_; }
-  Point getC() { return c_; }
-
  protected:
-  Point a_;
-  Point b_;
-  Point c_;
   double c_len_;
   double b_len_;
   double a_len_;
