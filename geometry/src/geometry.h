@@ -313,7 +313,7 @@ class Ellipse : public Shape {
 
   void scale(Point center, double coefficient) {
     focus1_ = focus1_.scalePoint(center, coefficient);
-    focus2_ = focus1_.scalePoint(center, coefficient);
+    focus2_ = focus2_.scalePoint(center, coefficient);
     distance_ = coefficient * distance_;
     a_ = coefficient * a_;
     b_ = coefficient * b_;
@@ -335,42 +335,15 @@ class Ellipse : public Shape {
 
 class Circle : public Ellipse {
  public:
-  Circle(Point o, double r) : a_(o), radius_(r) {}
+  Circle(Point o, double r) : Ellipse(o, o, 2 * r) {}
 
-  double radius() { return radius_; }
+  double radius() { return distance_ / 2; }
 
-  Point center() { return a_; }
+  Point center() { return focus1_; }
 
-  double perimeter() { return 2 * M_PI * radius_; }
+  double perimeter() { return M_PI * distance_; }
 
-  double area() { return M_PI * pow(radius_, 2); }
-
-  bool operator==(const Shape &another) override {
-    Circle *inp_shape = dynamic_cast<Circle *>(const_cast<Shape *>(&another));
-    if (inp_shape) {
-      if (inp_shape->radius() == radius_ && inp_shape->center() == a_) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void rotate(Point center, double angle) {
-    a_ = a_.rotatePoint(center, angle);
-  }
-
-  void reflex(Point center) { a_ = a_.reflexPoint(center); }
-
-  void reflex(Line axis) { a_ = axis.reflexLine(a_); }
-
-  void scale(Point center, double coefficient) {
-    a_ = a_.scalePoint(center, coefficient);
-    radius_ = coefficient * radius_;
-  }
-
- protected:
-  Point a_;
-  double radius_;
+  double area() { return M_PI * pow(distance_, 2) / 4; }
 };
 
 class Rectangle : public Polygon {
@@ -489,7 +462,9 @@ class Triangle : public Polygon {
   }
 
   Point getA() { return vertices_[0]; }
+
   Point getB() { return vertices_[1]; }
+
   Point getC() { return vertices_[2]; }
 
   double circumCenterHelper(double a, double b, double c) {
