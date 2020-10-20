@@ -198,31 +198,32 @@ class Polygon : public Shape {
     return fabs(result / 2);
   }
 
-  bool operator==(const Shape &another) override {
-    Polygon *inp_shape = dynamic_cast<Polygon *>(const_cast<Shape *>(&another));
-    if (inp_shape) {
-      if (inp_shape->getVertices().size() != vertices_.size()) {
-        return false;
+  bool isVertice(Point a) {
+    for (auto b : vertices_) {
+      if (a == b) {
+        return true;
       }
-      for (auto a : inp_shape->getVertices()) {
-        bool found = false;
-        for (auto b : vertices_) {
-          if (a == b) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-      return true;
     }
     return false;
   }
 
   bool operator!=(const Shape &another) {
-    if (*this == another) {
+    Polygon *inp_shape = dynamic_cast<Polygon *>(const_cast<Shape *>(&another));
+    if (inp_shape) {
+      if (inp_shape->getVertices().size() != vertices_.size()) {
+        return true;
+      }
+      for (auto a : inp_shape->getVertices()) {
+        if (!isVertice(a)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool operator==(const Shape &another) override {
+    if (*this != another) {
       return false;
     }
     return true;
