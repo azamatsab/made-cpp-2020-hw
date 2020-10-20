@@ -218,8 +218,9 @@ class Polygon : public Shape {
           return true;
         }
       }
+      return false;
     }
-    return false;
+    return true;
   }
 
   bool operator==(const Shape &another) override {
