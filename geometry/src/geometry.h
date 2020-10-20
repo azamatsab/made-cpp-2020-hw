@@ -413,13 +413,13 @@ class Square : public Rectangle {
 
   Circle circumscribedCircle() {
     Point center = getA().getCenter(getB());
-    auto rad = getA().dist(getB());
+    auto rad = getA().dist(getB()) / 2;
     return Circle(center, rad);
   }
 
   Circle inscribedCircle() {
     Point center = getA().getCenter(getB());
-    auto rad = getA().dist(getB()) / sqrt(2);
+    auto rad = min_length_ / 2;
     return Circle(center, rad);
   }
 
