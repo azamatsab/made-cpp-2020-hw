@@ -26,7 +26,9 @@ class Chunk {
   }
 
   bool operator==(const Chunk& other) {
-    if (other.start() == this->start()) return true;
+    if (other.start() == this->start()) {
+      return true;
+    }
     return false;
   }
 
