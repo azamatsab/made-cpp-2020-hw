@@ -156,24 +156,24 @@ class list {
     --length_;
   }
 
-  ~list() { clear_buffer(); }
+  ~list() { clearBuffer(); }
 
   list(const list& other)
       : alloc_(_traits::select_on_container_copy_construction(other.alloc_)) {
-    copy_base(other);
+    copyBase(other);
   }
 
-  list(list&& other) { move_base(std::forward<list>(other)); }
+  list(list&& other) { moveBase(std::forward<list>(other)); }
 
   list& operator=(const list& other) {
     this->~list();
-    copy_base(other);
+    copyBase(other);
     return *this;
   }
 
   list& operator=(list&& other) {
     this->~list();
-    move_base(std::forward<list>(other));
+    moveBase(std::forward<list>(other));
   }
 
   Alloc get_allocator() const { return alloc_; }
@@ -200,7 +200,7 @@ class list {
   bool empty() const { return length_ == 0; }
   size_t size() const { return length_; }
   size_t max_size() const { return length_; }
-  void clear() { clear_buffer(); }
+  void clear() { clearBuffer(); }
 
   void fixNodes(Node* inode, Node* pnode) {
     if (inode == head_ || inode == end_) {
@@ -295,12 +295,14 @@ class list {
         --length_;
       }
     }
+    return pos;
   }
 
   iterator erase(iterator first, iterator last) {
     for (; first != last; ++first) {
       erase(first);
     }
+    return iterator(head_);
   }
 
   void push_back(const T& value) { insert(iterator(end_), value); }
@@ -497,7 +499,7 @@ class list {
     }
   }
 
-  void clear_buffer() {
+  void clearBuffer() {
     if (length_ > 0) {
       baseDestruct();
       _traits::deallocate(alloc_, start_, length_);
@@ -505,7 +507,7 @@ class list {
     }
   }
 
-  void copy_base(const list& other) {
+  void copyBase(const list& other) {
     Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
     Node* onode = other.head_;
     for (size_type i = 0; i < other.length_ + 1; ++i) {
@@ -516,7 +518,7 @@ class list {
     --length_;
   }
 
-  void move_base(list&& other) {
+  void moveBase(list&& other) {
     alloc_ = other.alloc_;
     allocator_ = other.allocator_;
     length_ = std::move(other.length_);
