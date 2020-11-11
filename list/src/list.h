@@ -37,29 +37,31 @@ class list {
     Node* next_ = nullptr;
   };
 
-  class iterator {
+  template <typename P, typename R>
+  class iterator_base {
    public:
+    friend class list;
     using difference_type = std::ptrdiff_t;
     using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using pointer = P;
+    using reference = R;
     using iterator_category = std::bidirectional_iterator_tag;
 
-    iterator(Node* iptr) : ptr(iptr) {}
+    iterator_base(Node* iptr) : ptr(iptr) {}
 
-    iterator(const iterator& other) { ptr = other.ptr; }
+    iterator_base(const iterator_base& other) { ptr = other.ptr; }
 
-    iterator& operator=(const iterator& other) { ptr = other.ptr; }
+    iterator_base& operator=(const iterator_base& other) { ptr = other.ptr; }
 
-    iterator& operator++() {
+    iterator_base& operator++() {
       ptr = ptr->getNext();
       return *this;
     }
 
-    iterator operator++(int) {
+    iterator_base operator++(int) {
       value_type old_ptr = *ptr;
       ptr = ptr->getNext();
-      iterator other = iterator(&old_ptr);
+      iterator_base other = iterator_base(&old_ptr);
       return other;
     }
 
@@ -69,26 +71,26 @@ class list {
       return const_cast<pointer>(&(ptr->getData()));
     }
 
-    iterator& operator--() {
+    iterator_base& operator--() {
       ptr = ptr->getPrev();
       return *this;
     }
 
-    iterator operator--(int) {
+    iterator_base operator--(int) {
       Node old_ptr = *ptr;
       old_ptr.setData(ptr->getData());
       old_ptr.setNext(ptr->getNext());
       old_ptr.setPrev(ptr->getPrev());
       ptr = ptr->getPrev();
-      iterator other = iterator(&old_ptr);
+      iterator_base other = iterator_base(&old_ptr);
       return other;
     }
 
-    bool operator==(iterator other) const { return ptr == other.ptr; }
+    bool operator==(iterator_base other) const { return ptr == other.ptr; }
 
-    bool operator!=(iterator other) const { return ptr != other.ptr; }
+    bool operator!=(iterator_base other) const { return ptr != other.ptr; }
 
-    iterator operator+(difference_type n) {
+    iterator_base operator+(difference_type n) {
       while (n != 0) {
         ptr = ptr->getNext();
         --n;
@@ -96,76 +98,9 @@ class list {
       return *this;
     }
 
-    iterator operator-(difference_type n) {
+    iterator_base operator-(difference_type n) {
       while (n != 0) {
         ptr = ptr->getPrev();
-        --n;
-      }
-      return *this;
-    }
-
-    Node* val() { return ptr; }
-
-   private:
-    Node* ptr = nullptr;
-  };
-
-  class const_iterator {
-   public:
-    using difference_type = std::ptrdiff_t;
-    using value_type = T;
-    using pointer = const T*;
-    using reference = T&;
-    using iterator_category = std::bidirectional_iterator_tag;
-
-    const_iterator(Node* iptr) : ptr(iptr) {}
-
-    const_iterator(const const_iterator& other) { ptr = other.ptr; }
-
-    const_iterator& operator=(const const_iterator& other) {
-      ptr = other.ptr;
-    }
-
-    const_iterator& operator++() {
-      ptr = ptr->getNext();
-      return *this;
-    }
-
-    const_iterator operator++(int) {
-      value_type old_ptr = *ptr;
-      ptr = ptr->getNext();
-      const_iterator other = const_iterator(&old_ptr);
-      return other;
-    }
-
-    reference operator*() const { return ptr->getData(); }
-
-    pointer operator->() const {
-      return const_cast<pointer>(&(ptr->getData()));
-    }
-
-    const_iterator& operator--() {
-      ptr = ptr->getPrev();
-      return *this;
-    }
-
-    const_iterator operator--(int) {
-      Node old_ptr = *ptr;
-      old_ptr.setData(ptr->getData());
-      old_ptr.setNext(ptr->getNext());
-      old_ptr.setPrev(ptr->getPrev());
-      ptr = ptr->getPrev();
-      iterator other = iterator(&old_ptr);
-      return other;
-    }
-
-    bool operator==(iterator other) const { return ptr == other.ptr; }
-
-    bool operator!=(iterator other) const { return ptr != other.ptr; }
-
-    iterator operator+(difference_type n) {
-      while (n != 0) {
-        ++ptr;
         --n;
       }
       return *this;
@@ -188,8 +123,8 @@ class list {
   using const_reference = const value_type&;
   using pointer = typename _traits::pointer;
   using const_pointer = typename _traits::const_pointer;
-  using iterator = iterator;
-  using const_iterator = const_iterator;
+  typedef iterator_base<T*, T&> iterator;
+  typedef iterator_base<const T*, const T&> const_iterator;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<iterator>;
 
