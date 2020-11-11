@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <iterator>
-#include <typeinfo>
 
 namespace task {
 
@@ -13,8 +12,6 @@ class list {
     Node() {}
 
     Node(T data) : data_(std::move(data)) {}
-
-    Node(T&& other) { data_ = std::move(other.data_); }
 
     void setData(T& data) { data_ = data; }
 
@@ -43,18 +40,16 @@ class list {
   class iterator {
    public:
     using difference_type = std::ptrdiff_t;
-    using value_type = Node;
-    using pointer = Node*;
-    using reference = Node&;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
     using iterator_category = std::bidirectional_iterator_tag;
 
     iterator(Node* iptr) : ptr(iptr) {}
 
     iterator(const iterator& other) { ptr = other.ptr; }
-    iterator& operator=(const iterator& other) {
-      // other = const_cast<iterator>(other);
-      ptr = other.ptr;
-    }
+
+    iterator& operator=(const iterator& other) { ptr = other.ptr; }
 
     iterator& operator++() {
       ptr = ptr->getNext();
@@ -68,16 +63,11 @@ class list {
       return other;
     }
 
-    T& operator*() const {
-      std::cout << "Calling *, return " << ptr->getData() << std::endl;
-      // if (ptr->getPrev() != 0)
-      //   std::cout << ptr->getPrev()->getData() << std::endl;
-      std::cout << difference_type(ptr - ptr->getNext()) << std::endl;
+    reference operator*() const { return ptr->getData(); }
 
-      return ptr->getData();
+    pointer operator->() const {
+      return const_cast<pointer>(&(ptr->getData()));
     }
-
-    T* operator->() const { return const_cast<T*>(&(ptr->getData())); }
 
     iterator& operator--() {
       ptr = ptr->getPrev();
@@ -85,7 +75,10 @@ class list {
     }
 
     iterator operator--(int) {
-      value_type old_ptr = *ptr;
+      Node old_ptr = *ptr;
+      old_ptr.setData(ptr->getData());
+      old_ptr.setNext(ptr->getNext());
+      old_ptr.setPrev(ptr->getPrev());
       ptr = ptr->getPrev();
       iterator other = iterator(&old_ptr);
       return other;
@@ -95,25 +88,43 @@ class list {
 
     bool operator!=(iterator other) const { return ptr != other.ptr; }
 
-    pointer val() { return ptr; }
+    iterator operator+(difference_type n) {
+      while (n != 0) {
+        ptr = ptr->getNext();
+        --n;
+      }
+      return *this;
+    }
+
+    iterator operator-(difference_type n) {
+      while (n != 0) {
+        ptr = ptr->getPrev();
+        --n;
+      }
+      return *this;
+    }
+
+    Node* val() { return ptr; }
 
    private:
-    pointer ptr = nullptr;
+    Node* ptr = nullptr;
   };
 
   class const_iterator {
    public:
     using difference_type = std::ptrdiff_t;
-    using value_type = Node;
-    using pointer = const Node*;
-    using reference = Node&;
+    using value_type = T;
+    using pointer = const T*;
+    using reference = T&;
     using iterator_category = std::bidirectional_iterator_tag;
 
     const_iterator(Node* iptr) : ptr(iptr) {}
 
     const_iterator(const const_iterator& other) { ptr = other.ptr; }
 
-    const_iterator& operator=(const const_iterator& other) { ptr = other.ptr; }
+    const_iterator& operator=(const const_iterator& other) {
+      ptr = other.ptr;
+    }
 
     const_iterator& operator++() {
       ptr = ptr->getNext();
@@ -127,9 +138,11 @@ class list {
       return other;
     }
 
-    T& operator*() const { return ptr->getData(); }
+    reference operator*() const { return ptr->getData(); }
 
-    T* operator->() const { return const_cast<T*>(&(ptr->getData())); }
+    pointer operator->() const {
+      return const_cast<pointer>(&(ptr->getData()));
+    }
 
     const_iterator& operator--() {
       ptr = ptr->getPrev();
@@ -137,9 +150,12 @@ class list {
     }
 
     const_iterator operator--(int) {
-      value_type old_ptr = *ptr;
+      Node old_ptr = *ptr;
+      old_ptr.setData(ptr->getData());
+      old_ptr.setNext(ptr->getNext());
+      old_ptr.setPrev(ptr->getPrev());
       ptr = ptr->getPrev();
-      const_iterator other = const_iterator(&old_ptr);
+      iterator other = iterator(&old_ptr);
       return other;
     }
 
@@ -147,10 +163,18 @@ class list {
 
     bool operator!=(iterator other) const { return ptr != other.ptr; }
 
-    pointer val() { return ptr; }
+    iterator operator+(difference_type n) {
+      while (n != 0) {
+        ++ptr;
+        --n;
+      }
+      return *this;
+    }
+
+    Node* val() { return ptr; }
 
    private:
-    pointer ptr = nullptr;
+    Node* ptr = nullptr;
   };
 
   using node_allocator = typename Alloc::template rebind<Node>::other;
@@ -167,13 +191,7 @@ class list {
   using iterator = iterator;
   using const_iterator = const_iterator;
   using reverse_iterator = std::reverse_iterator<iterator>;
-  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
-  list() {}
-
-  explicit list(const Alloc& alloc) { alloc_ = alloc; }
-
-  // void setBack()
+  using const_reverse_iterator = std::reverse_iterator<iterator>;
 
   void base_construct(size_type i, size_type count, Node* pnode, Node& node) {
     if (i < count) {
@@ -188,6 +206,7 @@ class list {
     }
     if (i == 0) {
       head_ = &node;
+      start_ = head_;
     }
     ++length_;
   }
@@ -198,27 +217,35 @@ class list {
       _traits::destroy(alloc_, node);
       node = node->getNext();
     }
-    // other_traits::destroy(allocator_, temp_);
   }
 
   void clear_buffer() {
     if (length_ > 0) {
       base_destruct();
-      _traits::deallocate(alloc_, head_, length_);
-      // other_traits::deallocate(allocator_, temp_, 1);
+      _traits::deallocate(alloc_, start_, length_);
       length_ = 0;
     }
   }
 
-  list(size_t count, const T& value, const Alloc& alloc = Alloc()) {
-    alloc_ = alloc;
+  list() {
+    head_ = _traits::allocate(alloc_, 1);
+    end_ = head_;
+    start_ = head_;
+  }
+
+  explicit list(const Alloc& alloc) : alloc_(alloc) {
+    head_ = _traits::allocate(alloc_, 1);
+    end_ = head_;
+  }
+
+  list(size_t count, const T& value, const Alloc& alloc = Alloc())
+      : alloc_(alloc) {
     Node* pnode = _traits::allocate(alloc_, count + 1);
     for (size_type i = 0; i < count + 1; ++i) {
       _traits::construct(alloc_, pnode++, value);
       base_construct(i, count, pnode, *(pnode - 1));
     }
     --length_;
-    std::cout << "Length " << difference_type(end_ - head_) << std::endl;
   }
 
   explicit list(size_t count, const Alloc& alloc = Alloc()) {
@@ -228,6 +255,7 @@ class list {
       _traits::construct(alloc_, pnode++);
       base_construct(i, count, pnode, *(pnode - 1));
     }
+    --length_;
   }
 
   ~list() { clear_buffer(); }
@@ -235,40 +263,57 @@ class list {
   list(const list& other)
       : alloc_(_traits::select_on_container_copy_construction(other.alloc_)) {
     Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
-    Node onode = *other.head_;
+    Node* onode = other.head_;
     for (size_type i = 0; i < other.length_ + 1; ++i) {
-      _traits::construct(alloc_, pnode++, onode.getData());
-      onode = onode.getNext();
+      _traits::construct(alloc_, pnode++, onode->getData());
+      onode = onode->getNext();
       base_construct(i, other.length_, pnode, *(pnode - 1));
     }
+    --length_;
   }
 
   list(list&& other) : alloc_(other.alloc_) {
     length_ = std::move(other.length_);
     head_ = std::move(other.head_);
+    end_ = std::move(other.end_);
+    start_ = std::move(other.start_);
     other.length_ = 0;
     other.head_ = nullptr;
+    other.end_ = nullptr;
+    other.start_ = nullptr;
   }
 
   list& operator=(const list& other) {
     this->~list();
     alloc_ = _traits::select_on_container_copy_construction(other.alloc_);
+
     Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
-    Node onode = *other.head_;
+    Node* onode = other.head_;
     for (size_type i = 0; i < other.length_ + 1; ++i) {
-      _traits::construct(alloc_, pnode++, onode.getData());
-      onode = onode.getNext();
+      _traits::construct(alloc_, pnode++, onode->getData());
+      onode = onode->getNext();
       base_construct(i, other.length_, pnode, *(pnode - 1));
     }
+    --length_;
+    return *this;
   }
 
   list& operator=(list&& other) {
     this->~list();
     alloc_ = other.alloc_;
+    allocator_ = other.allocator_;
+
     length_ = std::move(other.length_);
     head_ = std::move(other.head_);
+    end_ = std::move(other.end_);
+    start_ = std::move(other.start_);
+    temp_ = std::move(other.temp_);
+
     other.length_ = 0;
     other.head_ = nullptr;
+    other.end_ = nullptr;
+    other.start_ = nullptr;
+    other.temp_ = nullptr;
   }
 
   Alloc get_allocator() const { return alloc_; }
@@ -281,113 +326,180 @@ class list {
   const T& back() const { return end_->getPrev()->getData(); }
 
   iterator begin() { return iterator(head_); }
-  // iterator end() { return iterator(head_->getPrev()); }
   iterator end() { return iterator(end_); }
 
   const_iterator cbegin() const { return const_iterator(head_); }
-  // const_iterator cend() const { return const_iterator(head_->getPrev()); }
   const_iterator cend() const { return const_iterator(end_); }
 
-  // reverse_iterator rbegin() { return reverse_iterator(head_->getPrev()); }
   reverse_iterator rbegin() { return reverse_iterator(end_); }
   reverse_iterator rend() { return reverse_iterator(head_); }
 
-  const_reverse_iterator crbegin() const {
-    return const_reverse_iterator(cend());
-  }
-  const_reverse_iterator crend() const {
-    return const_reverse_iterator(cbegin());
-  }
+  reverse_iterator crbegin() { return reverse_iterator(end()); }
+  reverse_iterator crend() { return reverse_iterator(begin()); }
 
   bool empty() const { return length_ == 0; }
   size_t size() const { return length_; }
   size_t max_size() const { return length_; }
   void clear() { clear_buffer(); }
 
-  Node& allocate_and_construct(const_iterator pos) {
-    Node* pnode;
-    if (length_ == 0) {
-      pnode = _traits::allocate(alloc_, 2);
+  void fixNodes(const_iterator pos, Node* pnode) {
+    if (pos.val() == head_) {
+      if (length_ == 0) {
+        head_ = pnode;
+        *end_ = *head_;
+        head_->setNext(end_);
+        end_->setPrev(head_);
+        head_->setPrev(end_);
+        end_->setNext(head_);
+      } else {
+        pnode->setNext(head_);
+        pnode->setPrev(end_);
+        head_->setPrev(pnode);
+        head_ = pnode;
+      }
+    } else if (pos.val() == end_) {
+      if (length_ == 0) {
+        head_ = pnode;
+        *end_ = *head_;
+        head_->setNext(end_);
+        end_->setPrev(head_);
+        head_->setPrev(end_);
+        end_->setNext(head_);
+      } else {
+        pnode->setNext(end_);
+        pnode->setPrev(end_->getPrev());
+        end_->getPrev()->setNext(pnode);
+        end_->setPrev(pnode);
+      }
     } else {
-      pnode = _traits::allocate(alloc_, 1);
+      Node* ptr = const_cast<Node*>(pos.val());
+      pnode->setNext(ptr);
+      pnode->setPrev(ptr->getPrev());
+      ptr->getPrev()->setNext(pnode);
+      ptr->setPrev(pnode);
     }
-    _traits::construct(alloc_, pnode);
     ++length_;
-    return fix_nodes(pnode, pos);
   }
 
-  Node& allocate_and_construct(iterator pos, const T& value) {
-    Node* pnode;
-    if (length_ == 0) {
-      pnode = _traits::allocate(alloc_, 2);
+  void fixNodes(iterator pos, Node* pnode) {
+    if (pos.val() == head_) {
+      if (length_ == 0) {
+        head_ = pnode;
+        *end_ = *head_;
+        head_->setNext(end_);
+        end_->setPrev(head_);
+        head_->setPrev(end_);
+        end_->setNext(head_);
+      } else {
+        pnode->setNext(head_);
+        pnode->setPrev(end_);
+        head_->setPrev(pnode);
+        head_ = pnode;
+      }
+    } else if (pos.val() == end_) {
+      if (length_ == 0) {
+        head_ = pnode;
+        *end_ = *head_;
+        head_->setNext(end_);
+        end_->setPrev(head_);
+        head_->setPrev(end_);
+        end_->setNext(head_);
+      } else {
+        pnode->setNext(end_);
+        pnode->setPrev(end_->getPrev());
+        end_->getPrev()->setNext(pnode);
+        end_->setPrev(pnode);
+      }
     } else {
-      pnode = _traits::allocate(alloc_, 1);
+      Node* ptr = pos.val();
+      pnode->setNext(ptr);
+      pnode->setPrev(ptr->getPrev());
+      ptr->getPrev()->setNext(pnode);
+      ptr->setPrev(pnode);
     }
+    ++length_;
+  }
+
+  Node* allocate_and_construct(const_iterator pos) {
+    Node* pnode = _traits::allocate(alloc_, 1);
+    _traits::construct(alloc_, pnode);
+    fixNodes(pos, pnode);
+    return pnode;
+  }
+
+  Node* allocate_and_construct(const_iterator pos, const T& value) {
+    Node* pnode = _traits::allocate(alloc_, 1);
     _traits::construct(alloc_, pnode, value);
-    ++length_;
-    return fix_nodes(pnode, pos);
+    fixNodes(pos, pnode);
+    return pnode;
   }
 
-  Node& allocate_and_construct(iterator pos) {
-    Node* pnode;
-    if (length_ == 0) {
-      pnode = _traits::allocate(alloc_, 2);
-    } else {
-      pnode = _traits::allocate(alloc_, 1);
-    }
+  Node* allocate_and_construct(iterator pos, const T& value) {
+    Node* pnode = _traits::allocate(alloc_, 1);
+    _traits::construct(alloc_, pnode, value);
+    fixNodes(pos, pnode);
+    return pnode;
+  }
+
+  Node* allocate_and_construct(iterator pos) {
+    Node* pnode = _traits::allocate(alloc_, 1);
     _traits::construct(alloc_, pnode);
-    ++length_;
-    return fix_nodes(pnode, pos);
+    fixNodes(pos, pnode);
+    return pnode;
   }
 
   template <class... Args>
-  Node& allocate_and_construct_with_args(iterator pos, Args&&... args) {
-    Node* pnode;
-    if (length_ == 0) {
-      pnode = _traits::allocate(alloc_, 2);
-    } else {
-      pnode = _traits::allocate(alloc_, 1);
-    }
-    temp_ = other_traits::allocate(allocator_, 1);
-    other_traits::construct(allocator_, temp_, std::forward<Args>(args)...);
-    _traits::construct(alloc_, pnode, *temp_);
-    ++length_;
-    return fix_nodes(pnode, pos);
+  Node* allocate_and_construct_with_args(iterator pos, Args&&... args) {
+    Node* pnode = _traits::allocate(alloc_, 1);
+    T* temp = other_traits::allocate(allocator_, 1);
+    other_traits::construct(allocator_, temp, std::forward<Args>(args)...);
+    _traits::construct(alloc_, pnode, *temp);
+    fixNodes(pos, pnode);
+    return pnode;
   }
 
   iterator insert(iterator pos, const T& value) {
-    Node* pnode = _traits::allocate(alloc_, 1);
-    _traits::construct(alloc_, pnode, value);
-    if (pos.val() == head_) {
-      Node node = *head_;
-    }
-    ++length_;
-    return fix_nodes(pnode, pos);
+    Node* pnode = allocate_and_construct(pos, value);
+    return iterator(pnode);
   }
 
   iterator insert(iterator pos, T&& value) {
-    allocate_and_construct(pos, std::forward<T>(value));
+    Node* pnode = allocate_and_construct(pos, std::forward<T>(value));
+    return iterator(pnode);
   }
 
   iterator insert(const_iterator pos, const T& value) {
-    allocate_and_construct(pos, value);
+    Node* pnode = allocate_and_construct(pos, value);
+    return iterator(pnode);
   }
 
   iterator insert(const_iterator pos, T&& value) {
-    allocate_and_construct(pos, std::forward<T>(value));
+    Node* pnode = allocate_and_construct(pos, std::forward<T>(value));
+    return iterator(pnode);
   }
 
   iterator insert(iterator pos, size_t count, const T& value) {
+    iterator temp(head_);
     for (size_type i = 0; i < count; ++i) {
-      insert(pos++, value);
+      pos = insert(pos, value);
     }
+    return pos;
   }
 
   iterator erase(const_iterator pos) {
-    pos.val()->getPrev()->setNext(pos.val()->getNext());
-    pos.val()->getNext()->setPrev(pos.val()->getPrev());
-    _traits::destroy(alloc_, pos.val());
-    --length_;
+    Node* ptr = pos.val();
+    if (length_ != 0) {
+      if (length_ == 1) {
+        _traits::destroy(alloc_, ptr);
+        --length_;
+      } else {
+        ptr->getPrev()->setNext(ptr->getNext());
+        ptr->getNext()->setPrev(ptr->getPrev());
+        _traits::destroy(alloc_, ptr);
+        --length_;
+      }
+    }
+    // return iterator();
   }
 
   iterator erase(const_iterator first, const_iterator last) {
@@ -397,11 +509,22 @@ class list {
   }
 
   iterator erase(iterator pos) {
-    std::cout << "AAA" << pos.val() << std::endl;
-    pos.val()->getPrev()->setNext(pos.val()->getNext());
-    pos.val()->getNext()->setPrev(pos.val()->getPrev());
-    _traits::destroy(alloc_, pos.val());
-    --length_;
+    Node* ptr = pos.val();
+    if (length_ != 0) {
+      if (length_ == 1) {
+        _traits::destroy(alloc_, ptr);
+        --length_;
+        head_ = end_;
+      } else {
+        ptr->getPrev()->setNext(ptr->getNext());
+        ptr->getNext()->setPrev(ptr->getPrev());
+        if (ptr == head_) {
+          head_ = head_->getNext();
+        }
+        _traits::destroy(alloc_, ptr);
+        --length_;
+      }
+    }
   }
 
   iterator erase(iterator first, iterator last) {
@@ -410,42 +533,23 @@ class list {
     }
   }
 
-  void push_back(const T& value) { insert(const_iterator(end_), value); }
+  void push_back(const T& value) { insert(iterator(end_), value); }
 
-  void push_back(T&& value) { insert(const_iterator(end_), value); }
+  void push_back(T&& value) { insert(iterator(end_), value); }
 
-  void pop_back() {
-    std::cout << (end_->getPrev() == nullptr) << std::endl;
-    erase(const_iterator(end_->getPrev()));
-  }
+  void pop_back() { erase(iterator(end_->getPrev())); }
 
-  void push_front(const T& value) {
-    insert(const_iterator(head_), value);
-    if (length_ != 1) {
-      head_ = head_->getPrev();
-    }
-  }
+  void push_front(const T& value) { insert(iterator(head_), value); }
 
-  void push_front(T&& value) {
-    insert(const_iterator(head_), value);
-    if (length_ != 1) {
-      head_ = head_->getPrev();
-    }
-  }
+  void push_front(T&& value) { insert(iterator(head_), value); }
 
-  void pop_front() {
-    Node node = *head_;
-    head_ = head_->getNext();
-    end_->setNext(head_);
-    head_->setPrev(end_);
-    erase(const_iterator(&node));
-  }
+  void pop_front() { erase(iterator(head_)); }
 
   template <class... Args>
   iterator emplace(iterator pos, Args&&... args) {
-    Node node =
+    Node* node =
         allocate_and_construct_with_args(pos, std::forward<Args>(args)...);
-    return iterator(&node);
+    return iterator(node);
   }
 
   template <class... Args>
@@ -456,7 +560,6 @@ class list {
   template <class... Args>
   void emplace_front(Args&&... args) {
     emplace(iterator(head_), std::forward<Args>(args)...);
-    head_ = head_->getPrev();
   }
 
   void resize(size_t count) {
@@ -477,34 +580,127 @@ class list {
   }
 
   void swap(list& other) {
-    if (std::allocator_traits<
-            allocator_type>::propagate_on_container_swap::value) {
-      if (get_allocator() == other.get_allocator()) {
-        list temp = std::move(*this);
-        *this = std::move(other);
-        other = std::move(*this);
+    list temp = std::move(*this);
+    *this = std::move(other);
+    other = std::move(temp);
+  }
+
+  void merge(list& other) {
+    iterator first = begin();
+    iterator second = end();
+
+    iterator ofirst = other.begin();
+    iterator osecond = other.end();
+
+    size_type length = other.length_;
+    for (size_type i = 0; i < length; ++i) {
+      bool inserted = false;
+      for (; first != second; ++first) {
+        if (*first >= *ofirst) {
+          ofirst.val()->getPrev()->setNext(ofirst.val()->getNext());
+          ofirst.val()->getNext()->setPrev(ofirst.val()->getPrev());
+          Node* pnode = ofirst.val();
+          iterator temp = ++ofirst;
+          fixNodes(first, pnode);
+          ofirst = temp;
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        ofirst.val()->getPrev()->setNext(ofirst.val()->getNext());
+        ofirst.val()->getNext()->setPrev(ofirst.val()->getPrev());
+        Node* pnode = ofirst.val();
+        iterator temp = ++ofirst;
+        fixNodes(second, pnode);
+        ofirst = temp;
+      }
+    }
+    other.head_ = other.end_;
+    other.length_ = 0;
+  }
+
+  void splice(iterator pos, list& other) {
+    iterator first = other.begin();
+    iterator second = other.end();
+    for (size_type i = 0; i < other.length_; ++i) {
+      first.val()->getPrev()->setNext(first.val()->getNext());
+      first.val()->getNext()->setPrev(first.val()->getPrev());
+      Node* pnode = first.val();
+      iterator temp = ++first;
+      fixNodes(pos, pnode);
+      first = temp;
+    }
+  }
+
+  void remove(const T& value) {
+    iterator first = begin();
+    iterator second = end();
+    for (; first != second; ++first) {
+      if (*first == value) {
+        erase(first);
       }
     }
   }
 
-  // void merge(list& other);
-  // void splice(const_iterator pos, list& other);
-  // void remove(const T& value);
-  // void reverse();
-  // void unique();
-  // void sort();
+  void iter_swap(iterator a, iterator b) {
+    T temp = *b;
+    b.val()->setData(*a);
+    a.val()->setData(temp);
+  }
+
+  void reverse() {
+    for (size_t i = 0; i < length_ / 2; ++i) {
+      iter_swap(begin() + i, end() - i - 1);
+    }
+  }
+
+  void unique() {
+    iterator st = ++begin();
+    size_type t_length = length_;
+    for (size_type i = 0; i <= t_length; ++i) {
+      iterator pr = --st;
+      ++st;
+      iterator temp = iterator(st.val()->getNext());
+      if (*pr == *st) {
+        erase(st);
+        st = temp;
+      } else
+        ++st;
+    }
+  }
+
+  void sort() {
+    iterator start = begin();
+    for (size_type i = 1; i < length_; ++i) {
+      ++start;
+      iterator st = start;
+      size_type j = i;
+      while (j > 0) {
+        --j;
+        iterator cur = st;
+        iterator prev = --st;
+        if (*cur < *prev) {
+          Node temp = *cur.val();
+          cur.val()->setData(*prev);
+          prev.val()->setData(temp.getData());
+        }
+      }
+    }
+  }
 
   // Your code goes here?..
 
   //  private:
   size_type length_ = 0;
   Node* head_ = nullptr;
+  Node* start_ = nullptr;
   Node* end_ = nullptr;
   T* temp_;
   node_allocator alloc_;
   std::allocator<T> allocator_;
   typedef std::allocator_traits<std::allocator<T>> other_traits;
-};
+};  // namespace task
 
 // Your template function definitions may go here...
 
