@@ -269,8 +269,8 @@ class list {
   reverse_iterator rbegin() { return reverse_iterator(end_); }
   reverse_iterator rend() { return reverse_iterator(head_); }
 
-  reverse_iterator crbegin() { return reverse_iterator(end()); }
-  reverse_iterator crend() { return reverse_iterator(begin()); }
+  reverse_iterator crbegin() const { return reverse_iterator(end_); }
+  reverse_iterator crend() const { return reverse_iterator(head_); }
 
   bool empty() const { return length_ == 0; }
   size_t size() const { return length_; }
