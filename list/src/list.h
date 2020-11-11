@@ -59,7 +59,7 @@ class list {
     }
 
     iterator_base operator++(int) {
-      value_type old_ptr = *ptr;
+      Node old_ptr = *ptr;
       ptr = ptr->getNext();
       iterator_base other = iterator_base(&old_ptr);
       return other;
@@ -78,9 +78,6 @@ class list {
 
     iterator_base operator--(int) {
       Node old_ptr = *ptr;
-      old_ptr.setData(ptr->getData());
-      old_ptr.setNext(ptr->getNext());
-      old_ptr.setPrev(ptr->getPrev());
       ptr = ptr->getPrev();
       iterator_base other = iterator_base(&old_ptr);
       return other;
@@ -128,40 +125,6 @@ class list {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<iterator>;
 
-  void base_construct(size_type i, size_type count, Node* pnode, Node& node) {
-    if (i < count) {
-      node.setNext(pnode);
-    } else {
-      end_ = &node;
-      node.setNext(head_);
-      head_->setPrev(end_);
-    }
-    if (i > 0) {
-      node.setPrev(pnode - 2);
-    }
-    if (i == 0) {
-      head_ = &node;
-      start_ = head_;
-    }
-    ++length_;
-  }
-
-  void base_destruct() {
-    Node* node = head_;
-    for (size_type i = 0; i < length_; ++i) {
-      _traits::destroy(alloc_, node);
-      node = node->getNext();
-    }
-  }
-
-  void clear_buffer() {
-    if (length_ > 0) {
-      base_destruct();
-      _traits::deallocate(alloc_, start_, length_);
-      length_ = 0;
-    }
-  }
-
   list() {
     head_ = _traits::allocate(alloc_, 1);
     end_ = head_;
@@ -178,7 +141,7 @@ class list {
     Node* pnode = _traits::allocate(alloc_, count + 1);
     for (size_type i = 0; i < count + 1; ++i) {
       _traits::construct(alloc_, pnode++, value);
-      base_construct(i, count, pnode, *(pnode - 1));
+      baseConstruct(i, count, pnode, *(pnode - 1));
     }
     --length_;
   }
@@ -188,7 +151,7 @@ class list {
     Node* pnode = _traits::allocate(alloc_, count + 1);
     for (size_type i = 0; i < count + 1; ++i) {
       _traits::construct(alloc_, pnode++);
-      base_construct(i, count, pnode, *(pnode - 1));
+      baseConstruct(i, count, pnode, *(pnode - 1));
     }
     --length_;
   }
@@ -197,58 +160,20 @@ class list {
 
   list(const list& other)
       : alloc_(_traits::select_on_container_copy_construction(other.alloc_)) {
-    Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
-    Node* onode = other.head_;
-    for (size_type i = 0; i < other.length_ + 1; ++i) {
-      _traits::construct(alloc_, pnode++, onode->getData());
-      onode = onode->getNext();
-      base_construct(i, other.length_, pnode, *(pnode - 1));
-    }
-    --length_;
+    copy_base(other);
   }
 
-  list(list&& other) : alloc_(other.alloc_) {
-    length_ = std::move(other.length_);
-    head_ = std::move(other.head_);
-    end_ = std::move(other.end_);
-    start_ = std::move(other.start_);
-    other.length_ = 0;
-    other.head_ = nullptr;
-    other.end_ = nullptr;
-    other.start_ = nullptr;
-  }
+  list(list&& other) { move_base(std::forward<list>(other)); }
 
   list& operator=(const list& other) {
     this->~list();
-    alloc_ = _traits::select_on_container_copy_construction(other.alloc_);
-
-    Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
-    Node* onode = other.head_;
-    for (size_type i = 0; i < other.length_ + 1; ++i) {
-      _traits::construct(alloc_, pnode++, onode->getData());
-      onode = onode->getNext();
-      base_construct(i, other.length_, pnode, *(pnode - 1));
-    }
-    --length_;
+    copy_base(other);
     return *this;
   }
 
   list& operator=(list&& other) {
     this->~list();
-    alloc_ = other.alloc_;
-    allocator_ = other.allocator_;
-
-    length_ = std::move(other.length_);
-    head_ = std::move(other.head_);
-    end_ = std::move(other.end_);
-    start_ = std::move(other.start_);
-    temp_ = std::move(other.temp_);
-
-    other.length_ = 0;
-    other.head_ = nullptr;
-    other.end_ = nullptr;
-    other.start_ = nullptr;
-    other.temp_ = nullptr;
+    move_base(std::forward<list>(other));
   }
 
   Alloc get_allocator() const { return alloc_; }
@@ -278,7 +203,7 @@ class list {
   void clear() { clear_buffer(); }
 
   void fixNodes(Node* inode, Node* pnode) {
-    if (inode == head_) {
+    if (inode == head_ || inode == end_) {
       if (length_ == 0) {
         head_ = pnode;
         *end_ = *head_;
@@ -286,21 +211,12 @@ class list {
         end_->setPrev(head_);
         head_->setPrev(end_);
         end_->setNext(head_);
-      } else {
+      } else if (inode == head_) {
         pnode->setNext(head_);
         pnode->setPrev(end_);
         head_->setPrev(pnode);
         head_ = pnode;
-      }
-    } else if (inode == end_) {
-      if (length_ == 0) {
-        head_ = pnode;
-        *end_ = *head_;
-        head_->setNext(end_);
-        end_->setPrev(head_);
-        head_->setPrev(end_);
-        end_->setNext(head_);
-      } else {
+      } else if (inode == end_) {
         pnode->setNext(end_);
         pnode->setPrev(end_->getPrev());
         end_->getPrev()->setNext(pnode);
@@ -358,6 +274,11 @@ class list {
     return pos;
   }
 
+  void removeNode(Node* ptr) {
+    ptr->getPrev()->setNext(ptr->getNext());
+    ptr->getNext()->setPrev(ptr->getPrev());
+  }
+
   iterator erase(iterator pos) {
     Node* ptr = pos.val();
     if (length_ != 0) {
@@ -366,8 +287,7 @@ class list {
         --length_;
         head_ = end_;
       } else {
-        ptr->getPrev()->setNext(ptr->getNext());
-        ptr->getNext()->setPrev(ptr->getPrev());
+        removeNode(ptr);
         if (ptr == head_) {
           head_ = head_->getNext();
         }
@@ -435,6 +355,14 @@ class list {
     other = std::move(temp);
   }
 
+  iterator moveNode(iterator ofirst, iterator first) {
+    removeNode(ofirst.val());
+    Node* pnode = ofirst.val();
+    iterator temp = ++ofirst;
+    fixNodes(first.val(), pnode);
+    return temp;
+  }
+
   void merge(list& other) {
     iterator first = begin();
     iterator second = end();
@@ -447,23 +375,13 @@ class list {
       bool inserted = false;
       for (; first != second; ++first) {
         if (*first >= *ofirst) {
-          ofirst.val()->getPrev()->setNext(ofirst.val()->getNext());
-          ofirst.val()->getNext()->setPrev(ofirst.val()->getPrev());
-          Node* pnode = ofirst.val();
-          iterator temp = ++ofirst;
-          fixNodes(first.val(), pnode);
-          ofirst = temp;
+          ofirst = moveNode(ofirst, first);
           inserted = true;
           break;
         }
       }
       if (!inserted) {
-        ofirst.val()->getPrev()->setNext(ofirst.val()->getNext());
-        ofirst.val()->getNext()->setPrev(ofirst.val()->getPrev());
-        Node* pnode = ofirst.val();
-        iterator temp = ++ofirst;
-        fixNodes(second.val(), pnode);
-        ofirst = temp;
+        ofirst = moveNode(ofirst, second);
       }
     }
     other.head_ = other.end_;
@@ -472,10 +390,8 @@ class list {
 
   void splice(iterator pos, list& other) {
     iterator first = other.begin();
-    iterator second = other.end();
     for (size_type i = 0; i < other.length_; ++i) {
-      first.val()->getPrev()->setNext(first.val()->getNext());
-      first.val()->getNext()->setPrev(first.val()->getPrev());
+      removeNode(first.val());
       Node* pnode = first.val();
       iterator temp = ++first;
       fixNodes(pos.val(), pnode);
@@ -493,7 +409,7 @@ class list {
     }
   }
 
-  void iter_swap(iterator a, iterator b) {
+  void iterSwap(iterator a, iterator b) {
     T temp = *b;
     b.val()->setData(*a);
     a.val()->setData(temp);
@@ -501,7 +417,7 @@ class list {
 
   void reverse() {
     for (size_t i = 0; i < length_ / 2; ++i) {
-      iter_swap(begin() + i, end() - i - 1);
+      iterSwap(begin() + i, end() - i - 1);
     }
   }
 
@@ -540,13 +456,11 @@ class list {
   }
 
   size_type length() { return length_; }
-  
+
   Node* head() { return head_; }
-  
+
   Node* tail() { return end_; }
-  
-  node_allocator alloc() { return alloc_; }
-  
+
  private:
   size_type length_ = 0;
   Node* head_ = nullptr;
@@ -556,8 +470,67 @@ class list {
   node_allocator alloc_;
   std::allocator<T> allocator_;
   typedef std::allocator_traits<std::allocator<T>> other_traits;
-};  // namespace task
 
-// Your template function definitions may go here...
+  void baseConstruct(size_type i, size_type count, Node* pnode, Node& node) {
+    if (i < count) {
+      node.setNext(pnode);
+    } else {
+      end_ = &node;
+      node.setNext(head_);
+      head_->setPrev(end_);
+    }
+    if (i > 0) {
+      node.setPrev(pnode - 2);
+    }
+    if (i == 0) {
+      head_ = &node;
+      start_ = head_;
+    }
+    ++length_;
+  }
+
+  void baseDestruct() {
+    Node* node = head_;
+    for (size_type i = 0; i < length_; ++i) {
+      _traits::destroy(alloc_, node);
+      node = node->getNext();
+    }
+  }
+
+  void clear_buffer() {
+    if (length_ > 0) {
+      baseDestruct();
+      _traits::deallocate(alloc_, start_, length_);
+      length_ = 0;
+    }
+  }
+
+  void copy_base(const list& other) {
+    Node* pnode = _traits::allocate(alloc_, other.length_ + 1);
+    Node* onode = other.head_;
+    for (size_type i = 0; i < other.length_ + 1; ++i) {
+      _traits::construct(alloc_, pnode++, onode->getData());
+      onode = onode->getNext();
+      baseConstruct(i, other.length_, pnode, *(pnode - 1));
+    }
+    --length_;
+  }
+
+  void move_base(list&& other) {
+    alloc_ = other.alloc_;
+    allocator_ = other.allocator_;
+    length_ = std::move(other.length_);
+    head_ = std::move(other.head_);
+    end_ = std::move(other.end_);
+    start_ = std::move(other.start_);
+    temp_ = std::move(other.temp_);
+
+    other.length_ = 0;
+    other.head_ = nullptr;
+    other.end_ = nullptr;
+    other.start_ = nullptr;
+    other.temp_ = nullptr;
+  }
+};
 
 }  // namespace task
